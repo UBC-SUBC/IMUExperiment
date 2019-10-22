@@ -11,6 +11,11 @@
 #define DELAYTIME 5
 #define DEBOUNCETIME 250
 
+#define GYROTHRESHOLD 200
+#define XINDICPIN 7
+#define YINDICPIN 6
+#define ZINDICPIN 5
+
 // IMU variables and objects
 MPU6050 IMU;
 bool IMUWorking = false;
@@ -52,20 +57,33 @@ void setup() {
   IMUWorking = IMU.testConnection();
   if (IMUWorking == true) {
     Serial.println("Successfully Connected");
-    delay(1000);
+    delay(500);
+    Serial.println("Calibrating gyro and accel");
+    IMU.CalibrateAccel();
+    IMU.CalibrateGyro();
+    delay(500);
     Serial.println("Taking Values from the sensor");
-    delay(1000);
+    delay(500);
   } else {
     Serial.println("Connection failed");
   }
 
   // Button stuff
   pinMode(BUTTONPIN, INPUT);
-  attachInterrupt(digitalPinToInterrupt(BUTTONPIN), buttonPress, FALLING);
+  attachInterrupt(digitalPinToInterrupt(BUTTONPIN), buttonPress, RISING);
 
   // Set up running indicator light
   pinMode(INDICATORPIN, OUTPUT);
   digitalWrite(INDICATORPIN, LOW);
+
+  // Set up gyro indicator lights
+  pinMode(XINDICPIN, OUTPUT);
+  digitalWrite(XINDICPIN, LOW);
+  pinMode(YINDICPIN, OUTPUT);
+  digitalWrite(YINDICPIN, LOW);
+  pinMode(ZINDICPIN, OUTPUT);
+  digitalWrite(ZINDICPIN, LOW);
+  
 }
 
 void loop() {
@@ -118,6 +136,7 @@ void loop() {
     temperature = IMU.getTemperature();
 
     // Start printing to Serial
+    /*
     Serial.print(millis() - startTime);
     Serial.print(",");
     Serial.print(ax);
@@ -138,7 +157,30 @@ void loop() {
     Serial.print(",");
     Serial.print(mz);
     Serial.print(",");
-    Serial.println(temperature);
+    Serial.println(temperature);*/
+    if (abs(gx)>GYROTHRESHOLD){
+      Serial.print(millis() - startTime);
+      Serial.println(" X over");
+      digitalWrite(XINDICPIN, HIGH);
+    } else {
+      digitalWrite(XINDICPIN, LOW);
+    }
+
+    if (abs(gy)>GYROTHRESHOLD){
+      Serial.print(millis() - startTime);
+      Serial.println(" Y over");
+      digitalWrite(YINDICPIN, HIGH);
+    } else {
+      digitalWrite(YINDICPIN, LOW);
+    }
+
+    if (abs(gz)>GYROTHRESHOLD){
+      Serial.print(millis() - startTime);
+      Serial.println(" Z over");
+      digitalWrite(ZINDICPIN, HIGH);
+    } else {
+      digitalWrite(ZINDICPIN, LOW);
+    }
 
     // Print the same information to the file
     outputFile.print(millis() - startTime);
