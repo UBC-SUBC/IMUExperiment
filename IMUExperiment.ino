@@ -30,7 +30,7 @@ int duration;
 int oldFall = 0;
 boolean running = false;
 boolean initialized = false;
-unsigned long startTime;
+uint32_t startTime;
 
 boolean interrupted = false;
 
@@ -196,13 +196,13 @@ void loop() {
     outputFile.print(gy);
     outputFile.print(",");
     outputFile.print(gz);
-    outputFile.print(",");
+    outputFile.print(",");/*
     outputFile.print(mx);
     outputFile.print(",");
     outputFile.print(my);
     outputFile.print(",");
     outputFile.print(mz);
-    outputFile.print(",");
+    outputFile.print(",");*/
     outputFile.println(temperature);
   }
   delay(DELAYTIME);
