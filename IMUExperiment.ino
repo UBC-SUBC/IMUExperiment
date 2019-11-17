@@ -16,6 +16,8 @@
 #define YINDICPIN 6
 #define ZINDICPIN 5
 
+#define DS3231_I2C_ADDRESS 0x68
+
 // IMU variables and objects
 MPU6050 IMU;
 bool IMUWorking = false;
@@ -35,6 +37,7 @@ uint32_t startTime;
 boolean interrupted = false;
 
 void buttonPress(void);
+void displayTime(File);
 
 void setup() {
   Serial.begin(9600);
@@ -111,7 +114,7 @@ void loop() {
           break;  // leave the loop!
         }
       }
-      outputFile.print("Time(ms),ax,ay,az,gx,gy,gz,temperature");
+      outputFile.print("Real time, Time(ms),ax,ay,az,gx,gy,gz,temperature");
 
       outputFile.println("");
       Serial.print(filename);
@@ -183,6 +186,7 @@ void loop() {
     }
 
     // Print the same information to the file
+    displayTime(outputFile);
     outputFile.print(millis() - startTime);
     outputFile.print(",");
     outputFile.print(ax);
@@ -216,4 +220,52 @@ void buttonPress(void) {
     Serial.println(
         "Not enough time has passed since the last event. Debouncing.");
   }
+}
+
+// Convert normal decimal numbers to binary coded decimal
+byte decToBcd(byte val) {
+  return( (val/10*16) + (val%10) );
+}
+
+// Convert binary coded decimal to normal decimal numbers
+byte bcdToDec(byte val) {
+  return( (val/16*10) + (val%16) );
+}
+
+void readDS3231time(byte *second, byte *minute, byte *hour, byte *dayOfWeek, byte *dayOfMonth, byte *month, byte *year) {
+  Wire.beginTransmission(DS3231_I2C_ADDRESS);
+  Wire.write(0); // set DS3231 register pointer to 00h
+  Wire.endTransmission();
+  Wire.requestFrom(DS3231_I2C_ADDRESS, 7);
+  // request seven bytes of data from DS3231 starting from register 00h
+  *second = bcdToDec(Wire.read() & 0x7f);
+  *minute = bcdToDec(Wire.read());
+  *hour = bcdToDec(Wire.read() & 0x3f);
+  *dayOfWeek = bcdToDec(Wire.read());
+  *dayOfMonth = bcdToDec(Wire.read());
+  *month = bcdToDec(Wire.read());
+  *year = bcdToDec(Wire.read());
+}
+
+void displayTime(File outputFile) {
+  byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
+  // retrieve data from DS3231
+  readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
+  // send it to the serial monitor
+  outputFile.print(2000+year, DEC);
+  outputFile.print("-");
+  outputFile.print(month, DEC);
+  outputFile.print("-");
+  outputFile.print(dayOfMonth, DEC);
+   outputFile.print(" ");
+  outputFile.print(hour, DEC);
+  outputFile.print(":");
+  if (minute<10)
+    outputFile.print("0");
+  outputFile.print(minute, DEC);
+  outputFile.print(":");
+  if (second<10)
+    outputFile.print("0");
+  outputFile.print(second, DEC);
+  outputFile.print(",");
 }
