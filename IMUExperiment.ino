@@ -5,6 +5,7 @@
 #include <SD.h>
 #include <SPI.h>
 #include <Wire.h>
+#include <ds3231.h>
 
 #define BUTTONPIN 3
 #define INDICATORPIN 9
@@ -33,6 +34,8 @@ int oldFall = 0;
 boolean running = false;
 boolean initialized = false;
 uint32_t startTime;
+
+struct ts t; //structure of the time in year, month, day, hour, etc
 
 boolean interrupted = false;
 
@@ -86,6 +89,17 @@ void setup() {
   digitalWrite(YINDICPIN, LOW);
   pinMode(ZINDICPIN, OUTPUT);
   digitalWrite(ZINDICPIN, LOW);
+
+  // DS3231 set up
+  DS3231_init(DS3231_I2C_ADDRESS);
+  t.hour = 12;
+  t.min = 30;
+  t.sec = 0;
+  t.mday = 25;
+  t.mon = 12;
+  t.year = 2019;
+
+  DS3231_set(t);
   
 }
 
@@ -185,10 +199,13 @@ void loop() {
       digitalWrite(ZINDICPIN, LOW);
     }
 
+    //print the time data
+    readDS3231time(t);
+    
     // Print the same information to the file
-    displayTime(outputFile);
+    /*  displayTime(outputFile);
     outputFile.print(millis() - startTime);
-    outputFile.print(",");
+    outputFile.print(",");  
     outputFile.print(ax);
     outputFile.print(",");
     outputFile.print(ay);
@@ -206,8 +223,8 @@ void loop() {
     outputFile.print(my);
     outputFile.print(",");
     outputFile.print(mz);
-    outputFile.print(",");*/
-    outputFile.println(temperature);
+    outputFile.print(",");
+    outputFile.println(temperature); */
   }
   delay(DELAYTIME);
 }
@@ -232,22 +249,38 @@ byte bcdToDec(byte val) {
   return( (val/16*10) + (val%16) );
 }
 
-void readDS3231time(byte *second, byte *minute, byte *hour, byte *dayOfWeek, byte *dayOfMonth, byte *month, byte *year) {
-  Wire.beginTransmission(DS3231_I2C_ADDRESS);
+void readDS3231time(struct ts time) {
+  /*Wire.beginTransmission(DS3231_I2C_ADDRESS);
   Wire.write(0); // set DS3231 register pointer to 00h
   Wire.endTransmission();
-  Wire.requestFrom(DS3231_I2C_ADDRESS, 7);
+  Wire.requestFrom(DS3231_I2C_ADDRESS, 7);*/
   // request seven bytes of data from DS3231 starting from register 00h
-  *second = bcdToDec(Wire.read() & 0x7f);
+
+  DS3231_get(&t); //gets time from DS3231
+
+  Serial.print("Date : ");
+  Serial.print(t.mday);
+  Serial.print("/ ");
+  Serial.print(t.mon);
+  Serial.print("/ ");
+  Serial.print(t.year);
+  Serial.print("\t hour: ");
+  Serial.print(t.hour);
+  Serial.print(": ");
+  Serial.print(t.min);
+  Serial.print(". ");
+  Serial.println(t.sec);
+
+ /* *second = bcdToDec(Wire.read() & 0x7f);
   *minute = bcdToDec(Wire.read());
   *hour = bcdToDec(Wire.read() & 0x3f);
   *dayOfWeek = bcdToDec(Wire.read());
   *dayOfMonth = bcdToDec(Wire.read());
   *month = bcdToDec(Wire.read());
-  *year = bcdToDec(Wire.read());
+  *year = bcdToDec(Wire.read()); */
 }
 
-void displayTime(File outputFile) {
+/* void displayTime(File outputFile) {
   byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
   // retrieve data from DS3231
   readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
@@ -268,4 +301,4 @@ void displayTime(File outputFile) {
     outputFile.print("0");
   outputFile.print(second, DEC);
   outputFile.print(",");
-}
+} */
